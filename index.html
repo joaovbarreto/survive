@@ -105,7 +105,7 @@
       display: none; /* começa invisível; o JavaScript liga e desliga */
       position: fixed;  /* "fixed" = flutua sobre tudo, preso à janela */
       inset: 0;         /* cola nas quatro bordas da janela */
-      background: rgba(16, 26, 35, 0.97); /* quase opaco, para acalmar a tela */
+      background: #101a23; /* opaco: cobre a tela inicial por completo */
       z-index: 10;      /* fica na frente de qualquer outra coisa */
       flex-direction: column;
       align-items: center;
@@ -127,6 +127,19 @@
       line-height: 1.6;
     }
 
+    /* A "área do círculo": um palco de tamanho fixo. O scale() do círculo
+       não empurra os vizinhos (transform não ocupa espaço), então esta
+       área reserva o espaço do círculo no tamanho MÁXIMO — assim ele
+       nunca invade os textos acima e abaixo. */
+    .circulo-area {
+      width: 15rem;  /* 8.5rem × 1.65 ≈ 14rem, com folga */
+      height: 15rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0.5rem 0;
+    }
+
     /* O círculo que respira. O tamanho muda via "transform: scale(...)"
        controlado pelo JavaScript — o CSS "transition" faz o movimento
        ser suave em vez de um pulo seco. */
@@ -136,7 +149,6 @@
       border-radius: 50%; /* 50% num quadrado = círculo perfeito */
       background: radial-gradient(circle at 35% 35%, #a5ead7, #4da58e);
       box-shadow: 0 0 70px rgba(127, 212, 193, 0.35); /* brilho ao redor */
-      margin: 2.5rem 0 2rem;
     }
 
     /* O rótulo da fase: "Inspire pelo nariz" / "Solte pela boca (biquinho)". */
@@ -193,7 +205,9 @@
   <!-- Overlay da pausa de respiração (invisível até a hora da pausa) -->
   <div id="overlay">
     <p id="frase">Solte o maxilar, os ombros e o pescoço.</p>
-    <div id="circulo"></div>
+    <div class="circulo-area">
+      <div id="circulo"></div>
+    </div>
     <p id="fase"></p>
     <p id="contador"></p>
     <button id="pronto">Pronto</button>
