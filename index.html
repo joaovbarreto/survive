@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <!-- ===== CABEÇALHO: informações sobre a página (nada disso aparece na tela) ===== -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>survive — pausas de respiração</title>
+
+  <!-- ===== CSS: a aparência (cores, tamanhos, posições) ===== -->
+  <style>
+    /* "*" = todos os elementos. Zera margens padrão dos navegadores. */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* O fundo da página: um degradê escuro e calmo, tudo centralizado. */
+    body {
+      min-height: 100vh; /* ocupa a altura inteira da janela */
+      display: flex;
+      align-items: center;     /* centraliza na vertical */
+      justify-content: center; /* centraliza na horizontal */
+      background: linear-gradient(160deg, #1d2b3a 0%, #16222e 100%);
+      color: #e8eef2;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      text-align: center;
+    }
+
+    /* O "cartão" central que agrupa tudo. */
+    .card {
+      padding: 2.5rem 2rem;
+      max-width: 26rem;
+      width: 90%;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 300;      /* fonte fininha, mais leve */
+      letter-spacing: 0.3em; /* espacinho entre as letras */
+      margin-bottom: 0.4rem;
+    }
+
+    .subtitle {
+      color: #9fb3c2;
+      font-size: 0.95rem;
+      margin-bottom: 2.5rem;
+    }
+
+    /* O bloco do intervalo: rótulo + campo numérico. */
+    .interval-row {
+      margin-bottom: 2rem;
+    }
+
+    .interval-row label {
+      display: block;
+      color: #9fb3c2;
+      font-size: 0.9rem;
+      margin-bottom: 0.6rem;
+    }
+
+    #interval {
+      width: 6rem;
+      padding: 0.5rem;
+      font-size: 1.3rem;
+      text-align: center;
+      color: #e8eef2;
+      background: rgba(255, 255, 255, 0.07); /* branco quase transparente */
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 0.5rem;
+    }
+
+    /* Quando o campo está desabilitado (ciclo rodando), fica apagadinho. */
+    #interval:disabled {
+      opacity: 0.4;
+    }
+
+    /* O botão Iniciar/Pausar. */
+    #toggle {
+      padding: 0.8rem 2.8rem;
+      font-size: 1.05rem;
+      color: #16222e;
+      background: #7fd4c1; /* verde-água suave */
+      border: none;
+      border-radius: 2rem; /* cantos bem redondos */
+      cursor: pointer;
+    }
+
+    #toggle:hover {
+      background: #98e0cf;
+    }
+
+    /* Linha de status abaixo do botão. */
+    #status {
+      margin-top: 1.5rem;
+      color: #9fb3c2;
+      font-size: 0.9rem;
+      min-height: 1.2rem; /* reserva o espaço mesmo vazio, para nada "pular" */
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ===== HTML: a estrutura (o que existe na tela) ===== -->
+  <div class="card">
+    <h1>survive</h1>
+    <p class="subtitle">pausas de respiração para soltar o maxilar</p>
+
+    <div class="interval-row">
+      <label for="interval">Intervalo entre pausas (minutos)</label>
+      <input type="number" id="interval" value="90" min="1" max="480">
+    </div>
+
+    <button id="toggle">Iniciar</button>
+
+    <p id="status"></p>
+  </div>
+
+  <!-- ===== JavaScript: o comportamento (o que acontece quando você interage) ===== -->
+  <script>
+    // Pegamos referências aos elementos da tela, pelos seus "id".
+    const intervalInput = document.getElementById("interval");
+    const toggleButton  = document.getElementById("toggle");
+    const statusText    = document.getElementById("status");
+
+    // Uma variável que lembra se o ciclo está rodando ou não.
+    let running = false;
+
+    // Quando o botão for clicado, executa esta função.
+    toggleButton.addEventListener("click", () => {
+      running = !running; // inverte: parado vira rodando, rodando vira parado
+
+      if (running) {
+        toggleButton.textContent = "Pausar";
+        intervalInput.disabled = true; // trava o campo enquanto roda
+        statusText.textContent = "Ciclo ativo — próxima pausa em " + intervalInput.value + " min";
+        // (No passo 2, aqui vai entrar o timer de verdade.)
+      } else {
+        toggleButton.textContent = "Iniciar";
+        intervalInput.disabled = false;
+        statusText.textContent = "Ciclo pausado";
+      }
+    });
+  </script>
+</body>
+</html>
