@@ -97,6 +97,18 @@
       font-size: 0.9rem;
       min-height: 1.2rem; /* reserva o espaço mesmo vazio, para nada "pular" */
     }
+
+    /* Aviso de pausa: a faixa que aparece quando o timer dispara. */
+    #alerta {
+      display: none; /* começa invisível; o JavaScript liga e desliga */
+      margin-top: 1.5rem;
+      padding: 1rem 1.2rem;
+      background: rgba(127, 212, 193, 0.12); /* verde-água bem transparente */
+      border: 1px solid rgba(127, 212, 193, 0.5);
+      border-radius: 0.8rem;
+      color: #b8ead9;
+      line-height: 1.6;
+    }
   </style>
 </head>
 
@@ -114,6 +126,11 @@
     <button id="toggle">Iniciar</button>
 
     <p id="status"></p>
+
+    <div id="alerta">
+      🌿 Hora da pausa.<br>
+      Solte o maxilar, os ombros e o pescoço.
+    </div>
   </div>
 
   <!-- ===== JavaScript: o comportamento (o que acontece quando você interage) ===== -->
@@ -122,9 +139,55 @@
     const intervalInput = document.getElementById("interval");
     const toggleButton  = document.getElementById("toggle");
     const statusText    = document.getElementById("status");
+    const alertBox      = document.getElementById("alerta");
 
-    // Uma variável que lembra se o ciclo está rodando ou não.
-    let running = false;
+    let running = false;    // o ciclo está ligado?
+    let nextPauseAt = null; // o momento da próxima pausa (em milissegundos)
+    let clock = null;       // o "relógio" que bate a cada segundo
+
+    // Transforma milissegundos em texto tipo "12:05" (minutos:segundos).
+    function formatTime(ms) {
+      const totalSeconds = Math.max(0, Math.round(ms / 1000));
+      const min = Math.floor(totalSeconds / 60);
+      const sec = totalSeconds % 60;
+      return min + ":" + String(sec).padStart(2, "0"); // padStart força 2 dígitos: 5 vira "05"
+    }
+
+    // Marca a próxima pausa para daqui a X minutos.
+    // Date.now() é "agora" em milissegundos; somamos o intervalo convertido.
+    function scheduleNextPause() {
+      let minutes = Number(intervalInput.value);
+      if (!minutes || minutes < 1) { // valor vazio ou inválido? volta ao padrão
+        minutes = 90;
+        intervalInput.value = 90;
+      }
+      nextPauseAt = Date.now() + minutes * 60 * 1000;
+    }
+
+    // Executa a cada segundo enquanto o ciclo está ativo.
+    function tick() {
+      const remaining = nextPauseAt - Date.now();
+
+      if (remaining <= 0) {
+        firePause(); // chegou a hora!
+      } else {
+        statusText.textContent = "Próxima pausa em " + formatTime(remaining);
+      }
+    }
+
+    // Dispara o aviso de pausa. O ciclo já recomeça a contar sozinho.
+    function firePause() {
+      alertBox.style.display = "block";
+      document.title = "🌿 hora da pausa — survive"; // muda o título da aba
+      scheduleNextPause(); // reinicia a contagem imediatamente
+
+      // Depois de 15 segundos, esconde o aviso.
+      // (No passo 3, esta faixa vira o overlay com o círculo de respiração.)
+      setTimeout(() => {
+        alertBox.style.display = "none";
+        document.title = "survive — pausas de respiração";
+      }, 15000);
+    }
 
     // Quando o botão for clicado, executa esta função.
     toggleButton.addEventListener("click", () => {
@@ -133,11 +196,14 @@
       if (running) {
         toggleButton.textContent = "Pausar";
         intervalInput.disabled = true; // trava o campo enquanto roda
-        statusText.textContent = "Ciclo ativo — próxima pausa em " + intervalInput.value + " min";
-        // (No passo 2, aqui vai entrar o timer de verdade.)
+        scheduleNextPause();
+        clock = setInterval(tick, 1000); // chama tick() a cada 1000 ms (1 segundo)
+        tick(); // primeira atualização já, sem esperar 1 segundo
       } else {
         toggleButton.textContent = "Iniciar";
         intervalInput.disabled = false;
+        clearInterval(clock); // desliga o relógio
+        alertBox.style.display = "none";
         statusText.textContent = "Ciclo pausado";
       }
     });
