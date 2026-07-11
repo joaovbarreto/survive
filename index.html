@@ -98,22 +98,84 @@
       min-height: 1.2rem; /* reserva o espaço mesmo vazio, para nada "pular" */
     }
 
-    /* Aviso de pausa: a faixa que aparece quando o timer dispara. */
-    #alerta {
+    /* ===== O OVERLAY DE RESPIRAÇÃO (o coração do app) ===== */
+
+    /* A camada que cobre a tela inteira durante a pausa. */
+    #overlay {
       display: none; /* começa invisível; o JavaScript liga e desliga */
-      margin-top: 1.5rem;
-      padding: 1rem 1.2rem;
-      background: rgba(127, 212, 193, 0.12); /* verde-água bem transparente */
-      border: 1px solid rgba(127, 212, 193, 0.5);
-      border-radius: 0.8rem;
-      color: #b8ead9;
+      position: fixed;  /* "fixed" = flutua sobre tudo, preso à janela */
+      inset: 0;         /* cola nas quatro bordas da janela */
+      background: rgba(16, 26, 35, 0.97); /* quase opaco, para acalmar a tela */
+      z-index: 10;      /* fica na frente de qualquer outra coisa */
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    /* Quando o overlay ganha a classe "aberto", ele aparece. */
+    #overlay.aberto {
+      display: flex;
+    }
+
+    /* A frase de abertura, convite para soltar o corpo. */
+    #frase {
+      font-size: 1.25rem;
+      font-weight: 300;
+      color: #cfe3dd;
+      max-width: 22rem;
       line-height: 1.6;
+    }
+
+    /* O círculo que respira. O tamanho muda via "transform: scale(...)"
+       controlado pelo JavaScript — o CSS "transition" faz o movimento
+       ser suave em vez de um pulo seco. */
+    #circulo {
+      width: 8.5rem;
+      height: 8.5rem;
+      border-radius: 50%; /* 50% num quadrado = círculo perfeito */
+      background: radial-gradient(circle at 35% 35%, #a5ead7, #4da58e);
+      box-shadow: 0 0 70px rgba(127, 212, 193, 0.35); /* brilho ao redor */
+      margin: 2.5rem 0 2rem;
+    }
+
+    /* O rótulo da fase: "Inspire pelo nariz" / "Solte pela boca (biquinho)". */
+    #fase {
+      font-size: 1.1rem;
+      color: #e8eef2;
+      min-height: 1.5rem;
+    }
+
+    /* Contador discreto: "ciclo 3 de 7". Sem cobrança, só orientação. */
+    #contador {
+      margin-top: 0.6rem;
+      font-size: 0.8rem;
+      color: #7d92a3;
+      min-height: 1rem;
+    }
+
+    /* Botão para encerrar a pausa quando quiser. */
+    #pronto {
+      margin-top: 2.2rem;
+      padding: 0.6rem 2.2rem;
+      font-size: 0.95rem;
+      color: #cfe3dd;
+      background: transparent;
+      border: 1px solid rgba(207, 227, 221, 0.4);
+      border-radius: 2rem;
+      cursor: pointer;
+    }
+
+    #pronto:hover {
+      background: rgba(207, 227, 221, 0.1);
     }
   </style>
 </head>
 
 <body>
   <!-- ===== HTML: a estrutura (o que existe na tela) ===== -->
+
+  <!-- Tela inicial -->
   <div class="card">
     <h1>survive</h1>
     <p class="subtitle">pausas de respiração para soltar o maxilar</p>
@@ -126,42 +188,133 @@
     <button id="toggle">Iniciar</button>
 
     <p id="status"></p>
+  </div>
 
-    <div id="alerta">
-      🌿 Hora da pausa.<br>
-      Solte o maxilar, os ombros e o pescoço.
-    </div>
+  <!-- Overlay da pausa de respiração (invisível até a hora da pausa) -->
+  <div id="overlay">
+    <p id="frase">Solte o maxilar, os ombros e o pescoço.</p>
+    <div id="circulo"></div>
+    <p id="fase"></p>
+    <p id="contador"></p>
+    <button id="pronto">Pronto</button>
   </div>
 
   <!-- ===== JavaScript: o comportamento (o que acontece quando você interage) ===== -->
   <script>
-    // Pegamos referências aos elementos da tela, pelos seus "id".
+    // ---------- Referências aos elementos da tela, pelos seus "id" ----------
     const intervalInput = document.getElementById("interval");
     const toggleButton  = document.getElementById("toggle");
     const statusText    = document.getElementById("status");
-    const alertBox      = document.getElementById("alerta");
+    const overlay       = document.getElementById("overlay");
+    const circulo       = document.getElementById("circulo");
+    const faseText      = document.getElementById("fase");
+    const contadorText  = document.getElementById("contador");
+    const prontoButton  = document.getElementById("pronto");
 
-    let running = false;    // o ciclo está ligado?
-    let nextPauseAt = null; // o momento da próxima pausa (em milissegundos)
-    let clock = null;       // o "relógio" que bate a cada segundo
+    // ---------- As constantes do ritmo respiratório (a spec do projeto) ----------
+    const INSPIRA_MS  = 4000; // 4 segundos inspirando (círculo expande)
+    const EXPIRA_MS   = 6000; // 6 segundos soltando o ar (círculo contrai)
+    const TOTAL_CICLOS = 7;   // ~7 ciclos ≈ 70 segundos e encerra
 
+    const TITULO_NORMAL = "survive — pausas de respiração";
+    const TITULO_PAUSA  = "🌿 hora da pausa — survive";
+    const CHAVE_INTERVALO = "survive.intervalo"; // nome da "gaveta" no localStorage
+
+    // ---------- Estado do ciclo de lembretes ----------
+    let running = false;      // o ciclo está ligado?
+    let nextPauseAt = null;   // o momento da próxima pausa (em milissegundos)
+    let clock = null;         // o "relógio" que bate a cada segundo
+    let breathTimer = null;   // agenda a troca de fase da respiração
+    let cicloAtual = 0;       // em qual dos 7 ciclos estamos
+
+    // ---------- Som suave (Web Audio API) ----------
+    // O navegador só deixa uma página tocar som depois de um clique do usuário.
+    // Por isso criamos o "contexto de áudio" no clique de Iniciar: isso destrava
+    // o som para todos os avisos seguintes.
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume(); // alguns navegadores criam o contexto "dormindo"
+      }
+    }
+
+    // Toca duas notas suaves (Lá e Ré), como um sininho distante.
+    // Em vez de um arquivo .mp3, o navegador SINTETIZA o som na hora —
+    // assim o app continua sendo um único arquivo.
+    function playChime() {
+      if (!audioCtx) return; // sem contexto (nunca clicou Iniciar), sem som
+
+      const agora = audioCtx.currentTime;
+      const notas = [440, 587.33]; // frequências em Hz: Lá4 e Ré5
+
+      notas.forEach((freq, i) => {
+        const inicio = agora + i * 0.35; // segunda nota entra 0,35s depois
+
+        const osc  = audioCtx.createOscillator(); // gera a onda sonora
+        const gain = audioCtx.createGain();       // controla o volume
+        osc.type = "sine"; // onda senoidal = timbre puro e suave
+        osc.frequency.value = freq;
+
+        // Envelope de volume: sobe rapidinho, decai devagar (sem "estalo").
+        gain.gain.setValueAtTime(0, inicio);
+        gain.gain.linearRampToValueAtTime(0.18, inicio + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.0001, inicio + 1.6);
+
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(inicio);
+        osc.stop(inicio + 1.8);
+      });
+    }
+
+    // ---------- Persistência do intervalo (localStorage) ----------
+    // localStorage é um armazenamento simples do navegador que sobrevive ao
+    // fechar a página. Usamos try/catch porque, em raras configurações
+    // (ex.: cookies bloqueados), acessá-lo dá erro — e o app deve seguir vivo.
+    function carregarIntervalo() {
+      try {
+        const salvo = localStorage.getItem(CHAVE_INTERVALO);
+        if (salvo) intervalInput.value = salvo;
+      } catch (e) { /* sem localStorage? tudo bem, fica o padrão 90 */ }
+    }
+
+    function salvarIntervalo(minutos) {
+      try {
+        localStorage.setItem(CHAVE_INTERVALO, minutos);
+      } catch (e) { /* sem localStorage? tudo bem, só não persiste */ }
+    }
+
+    // ---------- O timer do ciclo ----------
     // Transforma milissegundos em texto tipo "12:05" (minutos:segundos).
     function formatTime(ms) {
       const totalSeconds = Math.max(0, Math.round(ms / 1000));
       const min = Math.floor(totalSeconds / 60);
       const sec = totalSeconds % 60;
-      return min + ":" + String(sec).padStart(2, "0"); // padStart força 2 dígitos: 5 vira "05"
+      return min + ":" + String(sec).padStart(2, "0"); // padStart força 2 dígitos
     }
 
-    // Marca a próxima pausa para daqui a X minutos.
-    // Date.now() é "agora" em milissegundos; somamos o intervalo convertido.
-    function scheduleNextPause() {
+    // Lê o intervalo do campo, corrigindo valores inválidos.
+    function lerIntervalo() {
       let minutes = Number(intervalInput.value);
-      if (!minutes || minutes < 1) { // valor vazio ou inválido? volta ao padrão
+      if (!minutes || minutes < 1) { // vazio ou inválido? volta ao padrão
         minutes = 90;
         intervalInput.value = 90;
       }
-      nextPauseAt = Date.now() + minutes * 60 * 1000;
+      return minutes;
+    }
+
+    // Marca a próxima pausa para daqui a X minutos.
+    function scheduleNextPause() {
+      nextPauseAt = Date.now() + lerIntervalo() * 60 * 1000;
+    }
+
+    // Liga o relógio de 1 segundo que atualiza a contagem regressiva.
+    function startClock() {
+      clock = setInterval(tick, 1000);
+      tick(); // primeira atualização já, sem esperar 1 segundo
     }
 
     // Executa a cada segundo enquanto o ciclo está ativo.
@@ -175,38 +328,100 @@
       }
     }
 
-    // Dispara o aviso de pausa. O ciclo já recomeça a contar sozinho.
+    // ---------- A pausa de respiração ----------
+    // Dispara a pausa: som + overlay. O relógio para enquanto você respira.
     function firePause() {
-      alertBox.style.display = "block";
-      document.title = "🌿 hora da pausa — survive"; // muda o título da aba
-      scheduleNextPause(); // reinicia a contagem imediatamente
-
-      // Depois de 15 segundos, esconde o aviso.
-      // (No passo 3, esta faixa vira o overlay com o círculo de respiração.)
-      setTimeout(() => {
-        alertBox.style.display = "none";
-        document.title = "survive — pausas de respiração";
-      }, 15000);
+      clearInterval(clock);
+      statusText.textContent = "";
+      document.title = TITULO_PAUSA; // muda o título da aba para te chamar
+      playChime();
+      abrirOverlay();
     }
 
-    // Quando o botão for clicado, executa esta função.
+    function abrirOverlay() {
+      cicloAtual = 0;
+      overlay.classList.add("aberto");
+      // Garante que o círculo começa pequeno e sem animação pendente.
+      circulo.style.transition = "none";
+      circulo.style.transform = "scale(1)";
+      // Espera 1,2s parado (tempo de ler a frase) e começa a respiração.
+      breathTimer = setTimeout(inspirar, 1200);
+    }
+
+    // Fase 1: inspirar pelo nariz — o círculo EXPANDE por 4 segundos.
+    function inspirar() {
+      cicloAtual++;
+      if (cicloAtual > TOTAL_CICLOS) {
+        encerrarPausa();
+        return;
+      }
+
+      faseText.textContent = "Inspire pelo nariz";
+      contadorText.textContent = "ciclo " + cicloAtual + " de " + TOTAL_CICLOS;
+
+      // O transition diz: "quando o transform mudar, leve 4s, suavemente".
+      circulo.style.transition = "transform " + (INSPIRA_MS / 1000) + "s ease-in-out";
+      circulo.style.transform = "scale(1.65)"; // cresce 65%
+
+      breathTimer = setTimeout(expirar, INSPIRA_MS); // daqui a 4s, próxima fase
+    }
+
+    // Fase 2: soltar pela boca com biquinho — o círculo CONTRAI por 6 segundos.
+    function expirar() {
+      faseText.textContent = "Solte pela boca (biquinho)";
+
+      circulo.style.transition = "transform " + (EXPIRA_MS / 1000) + "s ease-in-out";
+      circulo.style.transform = "scale(1)"; // volta ao tamanho original
+
+      breathTimer = setTimeout(inspirar, EXPIRA_MS); // daqui a 6s, recomeça
+    }
+
+    // Fim natural da pausa: mensagem de despedida curta e fecha sozinho.
+    function encerrarPausa() {
+      faseText.textContent = "Pronto. Volte no seu ritmo.";
+      contadorText.textContent = "";
+      breathTimer = setTimeout(fecharOverlay, 2500);
+    }
+
+    // Fecha o overlay (pelo botão Pronto ou pelo fim dos ciclos)
+    // e o ciclo de lembretes recomeça sozinho.
+    function fecharOverlay() {
+      clearTimeout(breathTimer); // cancela qualquer fase agendada
+      overlay.classList.remove("aberto");
+      faseText.textContent = "";
+      contadorText.textContent = "";
+      document.title = TITULO_NORMAL;
+
+      if (running) {       // se ninguém apertou Pausar nesse meio-tempo...
+        scheduleNextPause(); // ...a contagem recomeça do zero
+        startClock();
+      }
+    }
+
+    prontoButton.addEventListener("click", fecharOverlay);
+
+    // ---------- O botão Iniciar/Pausar ----------
     toggleButton.addEventListener("click", () => {
       running = !running; // inverte: parado vira rodando, rodando vira parado
 
       if (running) {
+        initAudio(); // o clique destrava o som para os avisos futuros
+        salvarIntervalo(lerIntervalo());
         toggleButton.textContent = "Pausar";
         intervalInput.disabled = true; // trava o campo enquanto roda
         scheduleNextPause();
-        clock = setInterval(tick, 1000); // chama tick() a cada 1000 ms (1 segundo)
-        tick(); // primeira atualização já, sem esperar 1 segundo
+        startClock();
       } else {
         toggleButton.textContent = "Iniciar";
         intervalInput.disabled = false;
         clearInterval(clock); // desliga o relógio
-        alertBox.style.display = "none";
+        fecharOverlay();      // se a pausa estava aberta, fecha também
         statusText.textContent = "Ciclo pausado";
       }
     });
+
+    // ---------- Ao abrir a página ----------
+    carregarIntervalo(); // recupera o intervalo salvo da última vez
   </script>
 </body>
 </html>
