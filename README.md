@@ -28,7 +28,9 @@ alívio, não mais uma tarefa.
 
 ## Como funciona
 
-1. Defina o intervalo entre pausas (padrão: 90 minutos) e clique **Iniciar**.
+1. Defina o intervalo entre pausas — sugestão: 40 a 60 minutos para começar.
+   Dá para digitar ou simplesmente rolar o scroll do mouse sobre o número.
+   Depois, clique **Iniciar**.
 2. Quando chegar a hora, um som suave toca e a tela de respiração aparece.
 3. Siga o círculo por ~7 ciclos (≈70 segundos):
    - **Inspire pelo nariz — 4s** (o círculo expande)

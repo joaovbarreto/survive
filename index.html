@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>survive — pausas de respiração</title>
 
+  <!-- O ícone da aba (favicon): um SVG desenhado aqui mesmo, sem arquivo externo.
+       Quando o logotipo oficial existir, é só trocar por ele. -->
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%2316222e"/><circle cx="32" cy="32" r="17" fill="%237fd4c1"/></svg>'>
+
   <!-- ===== CSS: a aparência (cores, tamanhos, posições) ===== -->
   <style>
     /* "*" = todos os elementos. Zera margens padrão dos navegadores. */
@@ -59,6 +63,14 @@
       margin-bottom: 0.6rem;
     }
 
+    /* Textos de apoio pequenos e discretos. */
+    .hint {
+      display: block;
+      color: #7d92a3;
+      font-size: 0.78rem;
+      margin-top: 0.4rem;
+    }
+
     #interval {
       width: 6rem;
       padding: 0.5rem;
@@ -68,6 +80,15 @@
       background: rgba(255, 255, 255, 0.07); /* branco quase transparente */
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 0.5rem;
+      appearance: textfield; /* esconde as setinhas (Firefox) */
+    }
+
+    /* Esconde as setinhas do campo numérico (Chrome/Edge/Safari) —
+       o ajuste é rolando o scroll do mouse sobre o número. */
+    #interval::-webkit-inner-spin-button,
+    #interval::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
 
     /* Quando o campo está desabilitado (ciclo rodando), fica apagadinho. */
@@ -190,11 +211,15 @@
   <!-- Tela inicial -->
   <div class="card">
     <h1>survive</h1>
-    <p class="subtitle">pausas de respiração para soltar o maxilar</p>
+    <p class="subtitle">pausas para respirar e lembrar que você é humano — e resiliente</p>
 
     <div class="interval-row">
-      <label for="interval">Intervalo entre pausas (minutos)</label>
-      <input type="number" id="interval" value="90" min="1" max="480">
+      <label for="interval">
+        Selecione o intervalo desejado entre as pausas
+        <span class="hint">(sugiro 40 a 60 minutos para começarmos)</span>
+      </label>
+      <input type="number" id="interval" value="45" min="1" max="480">
+      <p class="hint">minutos — passe o mouse sobre o número e role para ajustar</p>
     </div>
 
     <button id="toggle">Iniciar</button>
@@ -310,15 +335,30 @@
       return min + ":" + String(sec).padStart(2, "0"); // padStart força 2 dígitos
     }
 
+    const INTERVALO_PADRAO = 45; // minutos, se o campo estiver vazio/inválido
+
     // Lê o intervalo do campo, corrigindo valores inválidos.
     function lerIntervalo() {
       let minutes = Number(intervalInput.value);
       if (!minutes || minutes < 1) { // vazio ou inválido? volta ao padrão
-        minutes = 90;
-        intervalInput.value = 90;
+        minutes = INTERVALO_PADRAO;
+        intervalInput.value = INTERVALO_PADRAO;
       }
       return minutes;
     }
+
+    // Ajuste do intervalo com o scroll do mouse: rolar para cima soma 5,
+    // para baixo subtrai 5 — sem precisar clicar em setinhas.
+    // { passive: false } avisa o navegador que vamos usar preventDefault(),
+    // que impede a página de rolar junto.
+    intervalInput.addEventListener("wheel", (e) => {
+      if (intervalInput.disabled) return; // ciclo rodando? campo travado
+      e.preventDefault();
+      const passo = e.deltaY < 0 ? 5 : -5; // deltaY negativo = rolou para cima
+      let v = Number(intervalInput.value) || INTERVALO_PADRAO;
+      v = Math.max(1, Math.min(480, v + passo)); // mantém entre 1 e 480
+      intervalInput.value = v;
+    }, { passive: false });
 
     // Marca a próxima pausa para daqui a X minutos.
     function scheduleNextPause() {
