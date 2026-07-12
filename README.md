@@ -57,10 +57,12 @@ Se você tem bruxismo, procure acompanhamento profissional.
   navegador moderno (Edge, Chrome, Firefox). É um único arquivo, sem instalação,
   sem dependências, sem build.
 
-**Limitação conhecida:** rodando no navegador, se você estiver em outra janela
-a tela de respiração não pula para a frente sozinha — quem te chama é o som e a
-aba piscando (🌿). A respiração te espera: os ciclos só começam depois que você
-abre a aba. O modo em segundo plano de verdade fica para uma versão futura.
+**Como o app te chama:** som suave + aba piscando (🌿) + notificação do
+sistema (se você permitir), que aparece mesmo com o navegador minimizado e
+fica na tela até você clicar. A respiração te espera: os ciclos só começam
+depois que você abre a aba. A única exigência é o navegador estar aberto em
+algum lugar — com ele fechado, nada roda (o modo nativo em segundo plano fica
+para uma versão futura).
 
 ## Tecnologia
 

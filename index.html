@@ -378,9 +378,11 @@
       relaxar. Experimenta: é diferente de só abrir a boca e soprar.</p>
 
       <h3>O som tocou mas nada aconteceu?</h3>
-      <p>A respiração te espera. Quando dá a hora, o som toca e a aba do
-      navegador fica piscando — o círculo só começa a se mexer quando você
-      chega. Dica: deixe a aba do survive aberta ao fundo enquanto trabalha.</p>
+      <p>A respiração te espera. Quando dá a hora, o som toca, a aba fica
+      piscando e — se você permitir notificações — um aviso do sistema
+      aparece no canto da tela, mesmo com o navegador minimizado, e fica lá
+      até você clicar. O círculo só começa a se mexer quando você chega.
+      Dica: deixe a aba do survive aberta ao fundo enquanto trabalha.</p>
 
       <h3>Minhas escolhas ficam salvas?</h3>
       <p>O intervalo que você escolher fica guardado no seu próprio navegador.
@@ -521,7 +523,7 @@
     intervalInput.addEventListener("wheel", (e) => {
       if (intervalInput.disabled) return; // ciclo rodando? campo travado
       e.preventDefault();
-      acumuladoScroll += -e.deltaY; // deltaY negativo = rolou para cima
+      acumuladoScroll += e.deltaY; // sentido ajustado ao gesto natural do mouse
 
       const agora = Date.now();
       // Só dá um passo quando acumulou um dente inteiro do scroll (~100)
@@ -573,9 +575,36 @@
     const ICONE_ALERTA = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%2316222e"/><circle cx="32" cy="32" r="21" fill="%23f2c078"/></svg>';
 
     let blinkTimer = null; // o pisca-pisca do título/ícone
+    let notifPausa = null; // a notificação do sistema, se existir
+
+    // Pede permissão para notificar (o navegador pergunta uma única vez).
+    // Chamamos no clique de Iniciar — igual ao áudio, precisa de um clique.
+    function pedirPermissaoNotificacao() {
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+
+    // Notificação do SISTEMA: aparece no canto da tela mesmo com o navegador
+    // minimizado, e fica lá até você interagir (requireInteraction).
+    // Clicar nela traz a aba de volta — e aí a respiração começa.
+    function notificarSistema() {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      notifPausa = new Notification("survive 🌿 hora da pausa", {
+        body: "Vem respirar comigo. São só 70 segundos.",
+        icon: ICONE_ALERTA,
+        tag: "survive-pausa",     // substitui a anterior em vez de acumular
+        requireInteraction: true, // não some sozinha: espera seu clique
+      });
+      notifPausa.onclick = () => {
+        window.focus(); // traz a janela/aba para a frente
+        notifPausa.close();
+      };
+    }
 
     function comecarChamado() {
       faseText.textContent = "te esperando para começar…";
+      notificarSistema();
       let aceso = false;
       blinkTimer = setInterval(() => {
         aceso = !aceso; // alterna a cada batida, criando o "pisca"
@@ -588,6 +617,10 @@
       clearInterval(blinkTimer);
       blinkTimer = null;
       faviconLink.href = ICONE_NORMAL;
+      if (notifPausa) {
+        notifPausa.close(); // você chegou: a notificação some
+        notifPausa = null;
+      }
     }
 
     // Quando você volta para a aba (ou traz a janela de volta),
@@ -703,6 +736,7 @@
 
       if (running) {
         initAudio(); // o clique destrava o som para os avisos futuros
+        pedirPermissaoNotificacao(); // e habilita o aviso do sistema
         salvarIntervalo(lerIntervalo());
         toggleButton.textContent = "Pausar";
         intervalInput.disabled = true; // trava o campo enquanto roda
