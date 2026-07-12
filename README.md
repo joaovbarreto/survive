@@ -31,7 +31,8 @@ alívio, não mais uma tarefa.
 1. Defina o intervalo entre pausas — sugestão: 40 a 60 minutos para começar.
    Dá para digitar ou simplesmente rolar o scroll do mouse sobre o número.
    Depois, clique **Iniciar**.
-2. Quando chegar a hora, um som suave toca e a tela de respiração aparece.
+2. Quando chegar a hora, um som suave toca e a aba do navegador fica
+   piscando, te chamando — a respiração só começa quando você chega.
 3. Siga o círculo por ~7 ciclos (≈70 segundos):
    - **Inspire pelo nariz — 4s** (o círculo expande)
    - **Solte pela boca fazendo biquinho — 6s** (o círculo contrai)
@@ -57,8 +58,9 @@ Se você tem bruxismo, procure acompanhamento profissional.
   sem dependências, sem build.
 
 **Limitação conhecida:** rodando no navegador, se você estiver em outra janela
-a tela de respiração não pula para a frente sozinha — quem te chama é o som e o
-título da aba (🌿). O modo em segundo plano fica para uma versão futura.
+a tela de respiração não pula para a frente sozinha — quem te chama é o som e a
+aba piscando (🌿). A respiração te espera: os ciclos só começam depois que você
+abre a aba. O modo em segundo plano de verdade fica para uma versão futura.
 
 ## Tecnologia
 

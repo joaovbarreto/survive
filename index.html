@@ -8,7 +8,7 @@
 
   <!-- O ícone da aba (favicon): um SVG desenhado aqui mesmo, sem arquivo externo.
        Quando o logotipo oficial existir, é só trocar por ele. -->
-  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%2316222e"/><circle cx="32" cy="32" r="17" fill="%237fd4c1"/></svg>'>
+  <link id="favicon" rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%2316222e"/><circle cx="32" cy="32" r="17" fill="%237fd4c1"/></svg>'>
 
   <!-- ===== CSS: a aparência (cores, tamanhos, posições) ===== -->
   <style>
@@ -31,11 +31,12 @@
       text-align: center;
     }
 
-    /* O "cartão" central que agrupa tudo. */
+    /* O "cartão" central que agrupa tudo. Largo o bastante para a frase
+       da capa caber em uma linha; em janelas estreitas ela quebra sozinha. */
     .card {
       padding: 2.5rem 2rem;
-      max-width: 26rem;
-      width: 90%;
+      max-width: 38rem;
+      width: 92%;
     }
 
     h1 {
@@ -49,6 +50,7 @@
       color: #9fb3c2;
       font-size: 0.95rem;
       margin-bottom: 2.5rem;
+      text-wrap: balance; /* se precisar quebrar, quebra bonito e equilibrado */
     }
 
     /* O bloco do intervalo: rótulo + campo numérico. */
@@ -91,6 +93,48 @@
       margin: 0;
     }
 
+    /* Agrupa o campo e a dica de scroll lado a lado, centralizados. */
+    .campo-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.9rem;
+    }
+
+    /* A dica interativa: um desenho de mouse com a rodinha "rolando"
+       suavemente, feito só com CSS — mostra o gesto sem precisar de texto. */
+    .scroll-dica {
+      width: 1.15rem;
+      height: 1.95rem;
+      border: 1.5px solid rgba(159, 179, 194, 0.5);
+      border-radius: 0.65rem;
+      position: relative;
+      opacity: 0.75;
+    }
+
+    .rodinha {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0.24rem;
+      height: 0.45rem;
+      background: #7fd4c1;
+      border-radius: 0.2rem;
+      animation: rolar 2s ease-in-out infinite; /* repete para sempre */
+    }
+
+    /* A animação: a "rodinha" desliza para baixo esmaecendo e volta. */
+    @keyframes rolar {
+      0%   { top: 0.28rem; opacity: 1; }
+      55%  { top: 1.0rem;  opacity: 0.3; }
+      100% { top: 0.28rem; opacity: 1; }
+    }
+
+    /* Celular/tablet não tem rodinha de mouse: esconde a dica. */
+    @media (hover: none) and (pointer: coarse) {
+      .scroll-dica { display: none; }
+    }
+
     /* Quando o campo está desabilitado (ciclo rodando), fica apagadinho. */
     #interval:disabled {
       opacity: 0.4;
@@ -117,6 +161,72 @@
       color: #9fb3c2;
       font-size: 0.9rem;
       min-height: 1.2rem; /* reserva o espaço mesmo vazio, para nada "pular" */
+    }
+
+    /* O convite para as explicações: discreto, como um link. */
+    #explicar {
+      margin-top: 2rem;
+      background: none;
+      border: none;
+      color: #7fd4c1;
+      opacity: 0.8;
+      font-size: 0.9rem;
+      text-decoration: underline dotted;
+      text-underline-offset: 4px;
+      cursor: pointer;
+    }
+
+    #explicar:hover {
+      opacity: 1;
+    }
+
+    /* ===== A TELA "VEM CÁ, DEIXA EU TE EXPLICAR" ===== */
+    #sobre {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #101a23;
+      z-index: 20; /* acima de tudo, inclusive do overlay de respiração */
+      overflow-y: auto; /* se o texto for maior que a tela, rola */
+      padding: 2.5rem 1.5rem;
+    }
+
+    #sobre.aberto {
+      display: block;
+    }
+
+    .sobre-conteudo {
+      max-width: 32rem;
+      margin: 0 auto;
+      text-align: left;
+      line-height: 1.75;
+      color: #c8d6de;
+      font-size: 0.98rem;
+    }
+
+    .sobre-conteudo h2 {
+      font-weight: 300;
+      color: #e8eef2;
+      margin-bottom: 1.5rem;
+    }
+
+    .sobre-conteudo h3 {
+      color: #7fd4c1;
+      font-size: 1.02rem;
+      font-weight: 600;
+      margin: 1.6rem 0 0.4rem;
+    }
+
+    #fecharSobre {
+      display: block;
+      margin: 2.5rem auto 1rem;
+      padding: 0.7rem 2.4rem;
+      font-size: 1rem;
+      color: #16222e;
+      background: #7fd4c1;
+      border: none;
+      border-radius: 2rem;
+      cursor: pointer;
     }
 
     /* ===== O OVERLAY DE RESPIRAÇÃO (o coração do app) ===== */
@@ -218,13 +328,67 @@
         Selecione o intervalo desejado entre as pausas
         <span class="hint">(sugiro 40 a 60 minutos para começarmos)</span>
       </label>
-      <input type="number" id="interval" value="45" min="1" max="480">
-      <p class="hint">minutos — passe o mouse sobre o número e role para ajustar</p>
+      <div class="campo-area">
+        <input type="number" id="interval" value="45" min="1" max="480">
+        <div class="scroll-dica" aria-hidden="true"><div class="rodinha"></div></div>
+      </div>
     </div>
 
     <button id="toggle">Iniciar</button>
 
     <p id="status"></p>
+
+    <button id="explicar">vem cá, deixa eu te explicar</button>
+  </div>
+
+  <!-- Tela de explicações (invisível até clicar no convite) -->
+  <div id="sobre">
+    <div class="sobre-conteudo">
+      <h2>vem cá 🌿</h2>
+
+      <h3>O que é isso?</h3>
+      <p>Um lembrete gentil. A cada tanto tempo, o survive te chama para uma
+      pausa de ~70 segundos: soltar o maxilar, os ombros, o pescoço — e
+      respirar acompanhando um círculo. Só isso. E é de propósito que seja
+      só isso.</p>
+
+      <h3>Por que pausas?</h3>
+      <p>Porque a tensão se acumula sem a gente perceber. O corpo passa horas
+      em modo alerta — mandíbula travada, ombro subindo — e não avisa. A pausa
+      interrompe esse acúmulo antes que ele vire dor. Nasceu de orientação de
+      especialista para quem convive com tensão na mandíbula, mas serve para
+      qualquer pessoa que passa o dia inteiro concentrada.</p>
+      <p>Um detalhe importante: o app <em>nunca</em> vai te pedir para vigiar
+      seu corpo ou "se policiar". Ficar se checando o dia todo só aumenta a
+      tensão. O convite aqui é o contrário: chegou a hora, solta tudo e
+      respira. Por isso também não tem pontuação, sequência nem gráfico —
+      a pausa é um alívio, não mais uma tarefa.</p>
+
+      <h3>Por que 4 segundos inspirando e 6 soltando?</h3>
+      <p>Quando a expiração é mais longa que a inspiração, o corpo ativa o
+      freio natural do sistema nervoso (o modo "descansar"), e a resposta de
+      tensão diminui. Não é mágica nem tratamento — é uma pausa relaxante com
+      embasamento. Se você convive com dor, procure acompanhamento
+      profissional; o survive é um companheiro, não um substituto.</p>
+
+      <h3>E o tal do biquinho?</h3>
+      <p>Ahá, você reparou. 😄 Soltar o ar pela boca fazendo biquinho cria uma
+      leve resistência na saída do ar — isso deixa a expiração mais lenta,
+      longa e controlada, que é exatamente o que aprofunda o efeito de
+      relaxar. Experimenta: é diferente de só abrir a boca e soprar.</p>
+
+      <h3>O som tocou mas nada aconteceu?</h3>
+      <p>A respiração te espera. Quando dá a hora, o som toca e a aba do
+      navegador fica piscando — o círculo só começa a se mexer quando você
+      chega. Dica: deixe a aba do survive aberta ao fundo enquanto trabalha.</p>
+
+      <h3>Minhas escolhas ficam salvas?</h3>
+      <p>O intervalo que você escolher fica guardado no seu próprio navegador.
+      Nada é enviado para servidor nenhum — aliás, o app inteiro é um único
+      arquivo, aberto e gratuito.</p>
+
+      <button id="fecharSobre">entendi, bora respirar</button>
+    </div>
   </div>
 
   <!-- Overlay da pausa de respiração (invisível até a hora da pausa) -->
@@ -347,18 +511,36 @@
       return minutes;
     }
 
-    // Ajuste do intervalo com o scroll do mouse: rolar para cima soma 5,
-    // para baixo subtrai 5 — sem precisar clicar em setinhas.
+    // Ajuste do intervalo com o scroll do mouse: para cima aumenta,
+    // para baixo diminui — número a número, num ritmo calmo.
     // { passive: false } avisa o navegador que vamos usar preventDefault(),
     // que impede a página de rolar junto.
+    let acumuladoScroll = 0; // soma os movimentos até completar um "dente"
+    let ultimoPassoEm = 0;   // quando foi o último passo (para frear o ritmo)
+
     intervalInput.addEventListener("wheel", (e) => {
       if (intervalInput.disabled) return; // ciclo rodando? campo travado
       e.preventDefault();
-      const passo = e.deltaY < 0 ? 5 : -5; // deltaY negativo = rolou para cima
-      let v = Number(intervalInput.value) || INTERVALO_PADRAO;
-      v = Math.max(1, Math.min(480, v + passo)); // mantém entre 1 e 480
-      intervalInput.value = v;
+      acumuladoScroll += -e.deltaY; // deltaY negativo = rolou para cima
+
+      const agora = Date.now();
+      // Só dá um passo quando acumulou um dente inteiro do scroll (~100)
+      // E já se passaram 90ms do passo anterior — é o "pouquinho mais lento".
+      if (Math.abs(acumuladoScroll) >= 100 && agora - ultimoPassoEm > 90) {
+        const passo = acumuladoScroll > 0 ? 1 : -1;
+        acumuladoScroll = 0;
+        ultimoPassoEm = agora;
+        const v = Number(intervalInput.value) || INTERVALO_PADRAO;
+        intervalInput.value = Math.max(1, Math.min(480, v + passo));
+      }
     }, { passive: false });
+
+    // Ao clicar/tocar no campo, seleciona o número inteiro — assim dá para
+    // digitar direto por cima, no computador ou no celular.
+    // (O setTimeout de 0ms espera o navegador terminar o clique primeiro.)
+    intervalInput.addEventListener("focus", () => {
+      setTimeout(() => intervalInput.select(), 0);
+    });
 
     // Marca a próxima pausa para daqui a X minutos.
     function scheduleNextPause() {
@@ -382,23 +564,73 @@
       }
     }
 
+    // ---------- Chamando você de longe (aba piscando) ----------
+    // Se a pausa dispara com você em outra aba/janela, a respiração NÃO
+    // começa sozinha: o título e o ícone da aba ficam piscando, pedindo
+    // sua atenção, e tudo espera você chegar.
+    const faviconLink = document.getElementById("favicon");
+    const ICONE_NORMAL = faviconLink.href; // o círculo verde-água de sempre
+    const ICONE_ALERTA = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%2316222e"/><circle cx="32" cy="32" r="21" fill="%23f2c078"/></svg>';
+
+    let blinkTimer = null; // o pisca-pisca do título/ícone
+
+    function comecarChamado() {
+      faseText.textContent = "te esperando para começar…";
+      let aceso = false;
+      blinkTimer = setInterval(() => {
+        aceso = !aceso; // alterna a cada batida, criando o "pisca"
+        document.title = aceso ? "🌿 hora da pausa" : "— survive —";
+        faviconLink.href = aceso ? ICONE_ALERTA : ICONE_NORMAL;
+      }, 900);
+    }
+
+    function pararChamado() {
+      clearInterval(blinkTimer);
+      blinkTimer = null;
+      faviconLink.href = ICONE_NORMAL;
+    }
+
+    // Quando você volta para a aba (ou traz a janela de volta),
+    // o pisca-pisca para e a respiração começa de verdade.
+    function chegou() {
+      if (blinkTimer && document.visibilityState === "visible") {
+        pararChamado();
+        comecarRespiracao();
+      }
+    }
+    document.addEventListener("visibilitychange", chegou);
+    window.addEventListener("focus", chegou);
+
     // ---------- A pausa de respiração ----------
     // Dispara a pausa: som + overlay. O relógio para enquanto você respira.
+    // Se a aba estiver escondida, fica no modo "chamado" até você abrir.
     function firePause() {
       clearInterval(clock);
       statusText.textContent = "";
       document.title = TITULO_PAUSA; // muda o título da aba para te chamar
       playChime();
       abrirOverlay();
+
+      if (document.visibilityState === "visible") {
+        comecarRespiracao(); // você está aqui: começa direto
+      } else {
+        comecarChamado(); // você está longe: pisca e espera
+      }
     }
 
+    // Abre a tela da pausa, com o círculo parado no tamanho inicial.
     function abrirOverlay() {
       cicloAtual = 0;
       overlay.classList.add("aberto");
       // Garante que o círculo começa pequeno e sem animação pendente.
       circulo.style.transition = "none";
       circulo.style.transform = "scale(1)";
-      // Espera 1,2s parado (tempo de ler a frase) e começa a respiração.
+    }
+
+    // Começa os ciclos: espera 1,2s parado (tempo de ler a frase) e respira.
+    function comecarRespiracao() {
+      document.title = TITULO_PAUSA;
+      faseText.textContent = "";
       breathTimer = setTimeout(inspirar, 1200);
     }
 
@@ -422,7 +654,7 @@
 
     // Fase 2: soltar pela boca com biquinho — o círculo CONTRAI por 6 segundos.
     function expirar() {
-      faseText.textContent = "Solte pela boca (biquinho)";
+      faseText.textContent = "Solte pela boca fazendo biquinho";
 
       circulo.style.transition = "transform " + (EXPIRA_MS / 1000) + "s ease-in-out";
       circulo.style.transform = "scale(1)"; // volta ao tamanho original
@@ -441,6 +673,7 @@
     // e o ciclo de lembretes recomeça sozinho.
     function fecharOverlay() {
       clearTimeout(breathTimer); // cancela qualquer fase agendada
+      if (blinkTimer) pararChamado(); // se estava piscando, para
       overlay.classList.remove("aberto");
       faseText.textContent = "";
       contadorText.textContent = "";
@@ -453,6 +686,16 @@
     }
 
     prontoButton.addEventListener("click", fecharOverlay);
+
+    // ---------- A tela "vem cá, deixa eu te explicar" ----------
+    const sobre = document.getElementById("sobre");
+    document.getElementById("explicar").addEventListener("click", () => {
+      sobre.classList.add("aberto");
+      sobre.scrollTop = 0; // sempre abre do começo do texto
+    });
+    document.getElementById("fecharSobre").addEventListener("click", () => {
+      sobre.classList.remove("aberto");
+    });
 
     // ---------- O botão Iniciar/Pausar ----------
     toggleButton.addEventListener("click", () => {
