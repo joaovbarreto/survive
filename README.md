@@ -2,10 +2,16 @@
 
 **Pausas de respiração para bruxismo em vigília.**
 
+![licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-7fd4c1)
+![um único arquivo](https://img.shields.io/badge/app-um%20%C3%BAnico%20HTML-16222e)
+![versão](https://img.shields.io/badge/vers%C3%A3o-0.1-9fb3c2)
+
 Um lembrete gentil, a cada X minutos, para parar um instante, soltar o maxilar,
 os ombros e o pescoço — e respirar num ritmo que ajuda o corpo a desacelerar.
 
 **➡️ Use agora: [joaovbarreto.github.io/survive](https://joaovbarreto.github.io/survive/)**
+
+![A pausa de respiração do survive: um círculo que expande e contrai guiando o ritmo](docs/screenshot.png)
 
 ---
 
